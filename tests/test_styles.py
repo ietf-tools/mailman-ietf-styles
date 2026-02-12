@@ -7,6 +7,7 @@ from mailman_ietf_styles.styles.ietf import (
     GLOBAL_ALLOWLIST_ADDRESS,
     IETFAnnounceStyle,
     IETFDefaultStyle,
+    _add_global_allowlist,
 )
 
 
@@ -16,30 +17,39 @@ def _mock_list():
     return mlist
 
 
-def test_default_style_adds_allowlist():
+def test_add_global_allowlist():
     mlist = _mock_list()
-    IETFDefaultStyle().apply(mlist)
+    _add_global_allowlist(mlist)
     assert GLOBAL_ALLOWLIST_ADDRESS in mlist.accept_these_nonmembers
 
 
-def test_default_style_handles_none():
+def test_add_global_allowlist_handles_none():
     mlist = MagicMock()
     mlist.accept_these_nonmembers = None
-    IETFDefaultStyle().apply(mlist)
+    _add_global_allowlist(mlist)
     assert mlist.accept_these_nonmembers == [GLOBAL_ALLOWLIST_ADDRESS]
 
 
-def test_default_style_idempotent():
+def test_add_global_allowlist_idempotent():
     mlist = _mock_list()
-    style = IETFDefaultStyle()
-    style.apply(mlist)
-    style.apply(mlist)
+    _add_global_allowlist(mlist)
+    _add_global_allowlist(mlist)
     assert mlist.accept_these_nonmembers.count(GLOBAL_ALLOWLIST_ADDRESS) == 1
 
 
-def test_announce_style_skips_allowlist():
+@patch('mailman_ietf_styles.styles.ietf._legacy_default')
+def test_default_style_calls_legacy_then_adds_allowlist(mock_legacy):
+    mlist = _mock_list()
+    IETFDefaultStyle().apply(mlist)
+    mock_legacy.apply.assert_called_once_with(mlist)
+    assert GLOBAL_ALLOWLIST_ADDRESS in mlist.accept_these_nonmembers
+
+
+@patch('mailman_ietf_styles.styles.ietf._legacy_announce')
+def test_announce_style_calls_legacy_no_allowlist(mock_legacy):
     mlist = _mock_list()
     IETFAnnounceStyle().apply(mlist)
+    mock_legacy.apply.assert_called_once_with(mlist)
     assert GLOBAL_ALLOWLIST_ADDRESS not in mlist.accept_these_nonmembers
 
 

@@ -1,6 +1,6 @@
 [project]
 name = "mailman-ietf-styles"
-version = "1.0.0"
+version = "1.0.1"
 description = "IETF list styles for Mailman 3"
 readme = "README.md"
 license = { text = "BSD-3-Clause" }
