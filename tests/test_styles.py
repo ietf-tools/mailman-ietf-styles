@@ -1,13 +1,13 @@
 """Tests for IETF list styles."""
 
-import importlib
 from unittest.mock import MagicMock, patch
 
 from mailman_ietf_styles.styles.ietf import (
-    GLOBAL_ALLOWLIST_ADDRESS,
+    DEFAULT_ALLOWLIST_FQDN,
     IETFAnnounceStyle,
     IETFDefaultStyle,
     _add_global_allowlist,
+    _get_allowlist_address,
 )
 
 
@@ -17,32 +17,63 @@ def _mock_list():
     return mlist
 
 
-def test_add_global_allowlist():
+def _mock_plugin_configs(fqdn=None):
+    """Return a generator mimicking config.plugin_configs."""
+    section = MagicMock()
+    if fqdn:
+        section.get.return_value = fqdn
+    else:
+        section.get.return_value = DEFAULT_ALLOWLIST_FQDN
+    return iter([('ietf_styles', section)])
+
+
+@patch('mailman_ietf_styles.styles.ietf.config')
+def test_add_global_allowlist(mock_config):
+    mock_config.plugin_configs = _mock_plugin_configs()
     mlist = _mock_list()
     _add_global_allowlist(mlist)
-    assert GLOBAL_ALLOWLIST_ADDRESS in mlist.accept_these_nonmembers
+    assert DEFAULT_ALLOWLIST_FQDN in mlist.accept_these_nonmembers
 
 
-def test_add_global_allowlist_handles_none():
+@patch('mailman_ietf_styles.styles.ietf.config')
+def test_add_global_allowlist_handles_none(mock_config):
+    mock_config.plugin_configs = _mock_plugin_configs()
     mlist = MagicMock()
     mlist.accept_these_nonmembers = None
     _add_global_allowlist(mlist)
-    assert mlist.accept_these_nonmembers == [GLOBAL_ALLOWLIST_ADDRESS]
+    assert mlist.accept_these_nonmembers == [DEFAULT_ALLOWLIST_FQDN]
 
 
-def test_add_global_allowlist_idempotent():
+@patch('mailman_ietf_styles.styles.ietf.config')
+def test_add_global_allowlist_idempotent(mock_config):
+    mock_config.plugin_configs = _mock_plugin_configs()
     mlist = _mock_list()
     _add_global_allowlist(mlist)
+    mock_config.plugin_configs = _mock_plugin_configs()
     _add_global_allowlist(mlist)
-    assert mlist.accept_these_nonmembers.count(GLOBAL_ALLOWLIST_ADDRESS) == 1
+    assert mlist.accept_these_nonmembers.count(DEFAULT_ALLOWLIST_FQDN) == 1
+
+
+@patch('mailman_ietf_styles.styles.ietf.config')
+def test_get_allowlist_address_from_config(mock_config):
+    mock_config.plugin_configs = _mock_plugin_configs('@custom@example.com')
+    assert _get_allowlist_address() == '@custom@example.com'
+
+
+@patch('mailman_ietf_styles.styles.ietf.config')
+def test_get_allowlist_address_default(mock_config):
+    mock_config.plugin_configs = iter([])
+    assert _get_allowlist_address() == DEFAULT_ALLOWLIST_FQDN
 
 
 @patch('mailman_ietf_styles.styles.ietf._legacy_default')
-def test_default_style_calls_legacy_then_adds_allowlist(mock_legacy):
+@patch('mailman_ietf_styles.styles.ietf.config')
+def test_default_style_calls_legacy_then_adds_allowlist(mock_config, mock_legacy):
+    mock_config.plugin_configs = _mock_plugin_configs()
     mlist = _mock_list()
     IETFDefaultStyle().apply(mlist)
     mock_legacy.apply.assert_called_once_with(mlist)
-    assert GLOBAL_ALLOWLIST_ADDRESS in mlist.accept_these_nonmembers
+    assert DEFAULT_ALLOWLIST_FQDN in mlist.accept_these_nonmembers
 
 
 @patch('mailman_ietf_styles.styles.ietf._legacy_announce')
@@ -50,7 +81,7 @@ def test_announce_style_calls_legacy_no_allowlist(mock_legacy):
     mlist = _mock_list()
     IETFAnnounceStyle().apply(mlist)
     mock_legacy.apply.assert_called_once_with(mlist)
-    assert GLOBAL_ALLOWLIST_ADDRESS not in mlist.accept_these_nonmembers
+    assert DEFAULT_ALLOWLIST_FQDN not in mlist.accept_these_nonmembers
 
 
 def test_style_names():
@@ -58,20 +89,8 @@ def test_style_names():
     assert IETFAnnounceStyle.name == "ietf-announce"
 
 
-def test_default_address():
-    assert GLOBAL_ALLOWLIST_ADDRESS == "@global-allowlist@ietf.org"
-
-
-@patch.dict("os.environ", {"GLOBAL_ALLOWLIST_FQDN": "@test@example.com"})
-def test_env_override():
-    from mailman_ietf_styles.styles import ietf
-
-    importlib.reload(ietf)
-    try:
-        assert ietf.GLOBAL_ALLOWLIST_ADDRESS == "@test@example.com"
-    finally:
-        del __import__("os").environ["GLOBAL_ALLOWLIST_FQDN"]
-        importlib.reload(ietf)
+def test_default_address_constant():
+    assert DEFAULT_ALLOWLIST_FQDN == "@global-allowlist@ietf.org"
 
 
 def test_plugin_interface():

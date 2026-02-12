@@ -1,7 +1,6 @@
 """IETF default list styles."""
 
-import os
-
+from mailman.config import config
 from mailman.interfaces.styles import IStyle
 
 # "Legacy" is upstream Mailman's naming (from the 2->3 migration), not a
@@ -16,21 +15,27 @@ __all__ = [
     'IETFAnnounceStyle',
 ]
 
-GLOBAL_ALLOWLIST_ADDRESS = os.environ.get(
-    'GLOBAL_ALLOWLIST_FQDN',
-    '@global-allowlist@ietf.org',
-)
+DEFAULT_ALLOWLIST_FQDN = '@global-allowlist@ietf.org'
 
 _legacy_default = LegacyDefaultStyle()
 _legacy_announce = LegacyAnnounceOnly()
 
 
+def _get_allowlist_address():
+    """Read the global allowlist FQDN from the plugin config in mailman.cfg."""
+    for name, section in config.plugin_configs:
+        if name == 'ietf_styles':
+            return section.get('global_allowlist_fqdn', DEFAULT_ALLOWLIST_FQDN)
+    return DEFAULT_ALLOWLIST_FQDN
+
+
 def _add_global_allowlist(mailing_list):
     """Add the global allowlist to accept_these_nonmembers."""
+    address = _get_allowlist_address()
     if not mailing_list.accept_these_nonmembers:
-        mailing_list.accept_these_nonmembers = [GLOBAL_ALLOWLIST_ADDRESS]
-    elif GLOBAL_ALLOWLIST_ADDRESS not in mailing_list.accept_these_nonmembers:
-        mailing_list.accept_these_nonmembers.append(GLOBAL_ALLOWLIST_ADDRESS)
+        mailing_list.accept_these_nonmembers = [address]
+    elif address not in mailing_list.accept_these_nonmembers:
+        mailing_list.accept_these_nonmembers.append(address)
 
 
 @implementer(IStyle)
