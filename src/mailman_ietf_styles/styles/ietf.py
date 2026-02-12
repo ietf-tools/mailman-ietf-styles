@@ -3,6 +3,12 @@
 import os
 
 from mailman.interfaces.styles import IStyle
+
+# "Legacy" is upstream Mailman's naming (from the 2->3 migration), not a
+# deprecation marker.  These are the standard built-in styles and the only
+# concrete IStyle implementations Mailman ships.  We call their apply() first
+# to initialise all required list attributes before adding IETF customisations.
+from mailman.styles.default import LegacyAnnounceOnly, LegacyDefaultStyle
 from zope.interface import implementer
 
 __all__ = [
@@ -12,8 +18,11 @@ __all__ = [
 
 GLOBAL_ALLOWLIST_ADDRESS = os.environ.get(
     'GLOBAL_ALLOWLIST_FQDN',
-    '@global-allowlist@ietf.org' # default
+    '@global-allowlist@ietf.org',
 )
+
+_legacy_default = LegacyDefaultStyle()
+_legacy_announce = LegacyAnnounceOnly()
 
 
 def _add_global_allowlist(mailing_list):
@@ -32,6 +41,7 @@ class IETFDefaultStyle:
     description = 'IETF discussion list with global allowlist for cross-posting.'
 
     def apply(self, mailing_list):
+        _legacy_default.apply(mailing_list)
         _add_global_allowlist(mailing_list)
 
 
@@ -43,4 +53,4 @@ class IETFAnnounceStyle:
     description = 'IETF announce-only list (no global allowlist).'
 
     def apply(self, mailing_list):
-        pass
+        _legacy_announce.apply(mailing_list)
