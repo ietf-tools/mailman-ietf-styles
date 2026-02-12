@@ -1,5 +1,7 @@
 """IETF default list styles."""
 
+import configparser
+
 from mailman.config import config
 from mailman.interfaces.styles import IStyle
 
@@ -22,10 +24,22 @@ _legacy_announce = LegacyAnnounceOnly()
 
 
 def _get_allowlist_address():
-    """Read the global allowlist FQDN from the plugin config in mailman.cfg."""
+    """Read the global allowlist FQDN from the plugin's configuration file.
+
+    The path is set via ``configuration`` in the ``[plugin.ietf_styles]``
+    section of mailman.cfg (same pattern as mailman-hyperkitty).  The file
+    is a standard .cfg with a ``[general]`` section.
+    """
     for name, section in config.plugin_configs:
         if name == 'ietf_styles':
-            return section.get('global_allowlist_fqdn', DEFAULT_ALLOWLIST_FQDN)
+            cfg_path = section['configuration']
+            if cfg_path:
+                cp = configparser.ConfigParser()
+                cp.read(cfg_path)
+                return cp.get(
+                    'general', 'global_allowlist_fqdn',
+                    fallback=DEFAULT_ALLOWLIST_FQDN,
+                )
     return DEFAULT_ALLOWLIST_FQDN
 
 
