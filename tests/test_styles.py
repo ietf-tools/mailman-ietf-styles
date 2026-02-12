@@ -22,6 +22,13 @@ def test_default_style_adds_allowlist():
     assert GLOBAL_ALLOWLIST_ADDRESS in mlist.accept_these_nonmembers
 
 
+def test_default_style_handles_none():
+    mlist = MagicMock()
+    mlist.accept_these_nonmembers = None
+    IETFDefaultStyle().apply(mlist)
+    assert mlist.accept_these_nonmembers == [GLOBAL_ALLOWLIST_ADDRESS]
+
+
 def test_default_style_idempotent():
     mlist = _mock_list()
     style = IETFDefaultStyle()

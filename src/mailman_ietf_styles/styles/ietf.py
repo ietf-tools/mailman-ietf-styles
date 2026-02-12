@@ -18,7 +18,9 @@ GLOBAL_ALLOWLIST_ADDRESS = os.environ.get(
 
 def _add_global_allowlist(mailing_list):
     """Add the global allowlist to accept_these_nonmembers."""
-    if GLOBAL_ALLOWLIST_ADDRESS not in mailing_list.accept_these_nonmembers:
+    if not mailing_list.accept_these_nonmembers:
+        mailing_list.accept_these_nonmembers = [GLOBAL_ALLOWLIST_ADDRESS]
+    elif GLOBAL_ALLOWLIST_ADDRESS not in mailing_list.accept_these_nonmembers:
         mailing_list.accept_these_nonmembers.append(GLOBAL_ALLOWLIST_ADDRESS)
 
 
