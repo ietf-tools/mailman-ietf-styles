@@ -1,0 +1,29 @@
+[project]
+name = "mailman-ietf-styles"
+version = "1.0.0"
+description = "IETF list styles for Mailman 3"
+readme = "README.md"
+license = { text = "BSD-3-Clause" }
+requires-python = ">=3.9"
+authors = [
+    { name = "IETF Tools Team" },
+]
+dependencies = [
+    "mailman>=3.3.9",
+    "zope.interface>=5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ietf-tools/mailman-ietf-styles"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]
